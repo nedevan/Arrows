@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+
+    <!-- Для стрелочек -->
+    <style>
+
+        .main-block { width: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+
+        #main { width: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column; overflow: hidden; padding-top: 100px; }
+
+        .floor { width: 100%; display: flex; justify-content: space-around; align-items: center; flex-direction: row; flex-wrap: wrap;}
+
+        .contact-block { cursor: pointer; width: 330px; height: 150px;  background: #fff; border-radius: 3px; border: 1px dotted #0000001f; display: flex; justify-content: center; align-items: center; text-align: center; margin: 15px; }
+        
+        @media screen and (max-width: 990px) {
+
+            #main { width: 100%; padding-top: 20px; }
+
+            .div1 { order: 0; }
+
+            .div3 { order: 1; }
+
+            .div4 { order: 2; }
+
+            .div2 { order: 3; }
+
+            .div5 { order: 4; }
+
+            .div6 { order: 5; }
+        }
+    </style>
+
+    <div class="main-block">
+        <div id="main">
+
+            <!-- Первый этаж -->
+            <div class="floor">
+
+                <div class="contact-block div1">
+                    Директор <br> Данные не указаны
+                </div>
+            </div>
+
+            <!-- Второй этаж -->
+            <div class="floor">
+
+                <div class="contact-block div3">
+                    Административно-правовой отдел <br> Данные не указаны   
+                </div>
+
+                <div class="contact-block div2">
+                    Заместитель Директора <br> Данные не указаны   
+                </div>
+
+                <div class="contact-block div4">
+                    Главный бухгалтер <br> Данные не указаны   
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+<script src="arrows.js"></script>
+<script>
+    
+    // Определим «общего родителя»
+    var main = $cArrows('#main', { render: { strokeStyle:'#001679', lineWidth: 3 }});
+    
+    // Рисуем стрелки from, to
+    main.arrow('.div1', '.div2', { arrow: { arrowType: 'no-arrow', arrowLineType: 'curved-line', connectionType: 'side', sideFrom: 'bottom', sideTo: 'top', startOffsetX: -115, lastOffsetX: - 115 }})
+        .arrow('.div1', '.div3', { arrow: { arrowType: 'no-arrow', arrowLineType: 'curved-line', connectionType: 'side', sideFrom: 'left', sideTo: 'top'}})
+        .arrow('.div1', '.div4', { arrow: { arrowType: 'no-arrow', arrowLineType: 'curved-line', connectionType: 'side', sideFrom: 'right', sideTo: 'top'}});
+
+    window.onresize = function(event) {
+
+        (window.innerWidth < 900) ? main.clear() : main.redraw();
+    };
+</script>
+</html>
