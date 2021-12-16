@@ -1,24 +1,31 @@
 /***
- * 
+ * Библиотека по рисованию стрелок
+ *
  * @link http://michael.verhov.com/ru/post/canvas_arrows_for_div
- * 
+ *
  * @update 25.10.2020
- * 
+ * @update 16.12.2021
  */
-(function (window, undefined) {
+(function (window) {
+    /**
+     * Arrows
+     *
+     * @param {String} identifier Идентификатор
+     * @param {Object} options Настройки
+     * @return {$cArrows}
+     */
+    const $cArrows = function (identifier, options) {
+        if (window === this) {
+            return new $cArrows(identifier, options);
+        }
 
-    // Конструктор
-    var $cArrows = function(commonParent, genrealOptions) {
-
-		if(window === this) return new $cArrows(commonParent, genrealOptions);
-
-        // Дефолтные настройки  (Можно добавить свои)
-		this.options = {
-		    base: {
-		        canvasZIndex: -10,
-		        alertErrors: true,
-		        putToContainer: true
-		    },
+        /* Дефолтные настройки (Можно добавить свои) */
+        this.defaultOptions = {
+            base: {
+                canvasZIndex: -10,
+                alertErrors: true,
+                putToContainer: true
+            },
             arrow: {
                 connectionType: 'rectangleAuto', // rectangleAuto | center | ellipseAuto | side | rectangleAngle | ellipseAngle
                 arrowType: 'arrow',              // arrow | line | double-headed
@@ -30,190 +37,203 @@
                 strokeStyle: '#2D6CA2'
             }
         };
-        
+
         // Массив 3х массивов. Первый массив нужен для Объектов, второй для канваса, третий для стрелок 
-        // stack for: [0] - for common nodes; [1] - for canvas; [2] - for drawn arrows [from, to, options]
-		this.CanvasStorage = [[], [], []];
+        // stack for: [0] - for common nodes; [1] - for canvas; [2] - for drawn arrows [from, to, defaultOptions]
+        this.CanvasStorage = [[], [], []];
 
         // Проверяем родителя
-		if (typeof commonParent === 'string') {
-
-		    var commonParentResult = document.querySelectorAll(commonParent);
+        let commonParentResult = [];
+        if (typeof identifier === 'string') {
+            commonParentResult = document.querySelectorAll(identifier);
+        } else {
+            this.trowUserException('common parent must be specified');
         }
-        
-		else this.trowException('common parent must be specified');
 
-		if(commonParentResult.length > 0) {
-
-		    for (var i = 0; i < commonParentResult.length; i++) {
-		        this.CanvasStorage[0][i] = commonParentResult[i];
+        if (commonParentResult.length > 0) {
+            for (let i = 0; i < commonParentResult.length; i++) {
+                this.CanvasStorage[0][i] = commonParentResult[i];
             }
-            
-		    this.CanvasStorage[0].length = commonParentResult.length;
+
+            this.CanvasStorage[0].length = commonParentResult.length;
+        } else {
+            this.trowUserException('common parent not found');
         }
-        
-		else this.trowException('common parent not found');
 
-        // Добавляем настройки
-		if (genrealOptions !== undefined) {
+        /* Добавляем настройки */
+        if (typeof options !== "undefined") {
+            if (typeof options.base !== "undefined") {
+                extend(this.defaultOptions.base, options.base);
+            }
 
-            if (genrealOptions.base !== undefined) extend(this.options.base, genrealOptions.base);
-            
-            if (genrealOptions.render !== undefined) extend(this.options.render, genrealOptions.render);
-            
-		    if (genrealOptions.arrow !== undefined) extend(this.options.arrow, genrealOptions.arrow);
-		}
+            if (typeof options.render !== "undefined") {
+                extend(this.defaultOptions.render, options.render);
+            }
 
-        // set up canvas for each node
-		for (iParent in this.CanvasStorage[0]) {
+            if (typeof options.arrow !== "undefined") {
+                extend(this.defaultOptions.arrow, options.arrow);
+            }
+        }
 
+        /* Настроить холст для каждого узла */
+        for (const iParent in this.CanvasStorage[0]) {
             this.CanvasStorage[0][iParent].style.position = 'relative';
-            
-            var canvas = document.createElement('canvas');
-            
-		    canvas.innerHTML = "";
-		    canvas.style.position = 'absolute';
-		    canvas.style.left = '0px';
-		    canvas.style.top = '0px';
-		    canvas.style.zIndex = this.options.base.canvasZIndex;
-		    canvas.width = this.CanvasStorage[0][iParent].scrollWidth;
-		    canvas.height = this.CanvasStorage[0][iParent].scrollHeight;
 
-		    // set identifier, if necessary
-            if (this.options['canvasId'] !== undefined) {    // && commonParentResult.length === 1
-                
-		        canvas.id = this.options['canvasId'];
+            const canvas = document.createElement('canvas');
+
+            canvas.innerHTML = "";
+            canvas.style.position = 'absolute';
+            canvas.style.left = '0px';
+            canvas.style.top = '0px';
+            canvas.style.zIndex = this.defaultOptions.base.canvasZIndex;
+            canvas.width = this.CanvasStorage[0][iParent].scrollWidth;
+            canvas.height = this.CanvasStorage[0][iParent].scrollHeight;
+
+            // set identifier, if necessary && commonParentResult.length === 1
+            if (typeof this.defaultOptions['canvasId'] !== "undefined") {
+                canvas.id = this.defaultOptions['canvasId'];
             }
-            
-		    if (this.options['canvasClass'] !== undefined) {
 
-		        canvas.className = this.options['canvasClass'];
-		    }
+            if (typeof this.defaultOptions['canvasClass'] !== "undefined") {
+                canvas.className = this.defaultOptions['canvasClass'];
+            }
 
-		    this.CanvasStorage[0][iParent].insertBefore(canvas, this.CanvasStorage[0][iParent].firstChild);
-		    this.CanvasStorage[1].push(canvas);
-		}
+            this.CanvasStorage[0][iParent].insertBefore(canvas, this.CanvasStorage[0][iParent].firstChild);
+            this.CanvasStorage[1].push(canvas);
+        }
 
-		return this;
+        return this;
     };
 
-    // Добавляет опции к существующим опциям стрелки, если такихопций нет
-    function extend(target, source) {
-
-        if(target != null && source != null) {
-
-            for (name in source) {
-
-                if(source[name] !== undefined) target[name] = source[name];
+    /**
+     * Обновляет опции настройки
+     *
+     * @param {Object} currentOptionObject Текущие настройки
+     * @param {Object} newOptionObject Новые настройки
+     * @return {Object}
+     */
+    function extend(currentOptionObject, newOptionObject) {
+        if (currentOptionObject != null && newOptionObject != null) {
+            for (const name in newOptionObject) {
+                if (typeof newOptionObject[name] !== "undefined") {
+                    currentOptionObject[name] = newOptionObject[name];
+                }
             }
         }
 
-        return target;
+        return currentOptionObject;
     }
 
-    // Получить top left width height объекта (div или другого)
+    /**
+     * Получить top left width height объекта (div или другого)
+     *
+     * @param {HTMLCanvasElement} canvas Канвас
+     * @param {HTMLDivElement} childrenEl Элемент
+     * @return {{top: number, left: number, width: number, height: number}}
+     */
     function getOffset(canvas, childrenEl) {
-
-        var canv = canvas.getBoundingClientRect(),
+        const canvasBoundingClientRect = canvas.getBoundingClientRect(),
             box = childrenEl.getBoundingClientRect();
 
-            return {
-                top: box.top - canv.top,
-                left: box.left - canv.left,
-                width: childrenEl.offsetWidth,
-                height: childrenEl.offsetHeight
-            };
+        return {
+            top: box.top - canvasBoundingClientRect.top,
+            left: box.left - canvasBoundingClientRect.left,
+            width: childrenEl.offsetWidth,
+            height: childrenEl.offsetHeight
+        };
     }
 
-    // Получить Радикал из Градусов
+    /**
+     * Получить Радикал из Градусов
+     *
+     * @param {Number} deg Градусы
+     * @return {Number}
+     */
     function DegToRad(deg) {
         return deg * (Math.PI / 180);
     }
 
-    // Получить Градус из Радикала
-    function RadToDeg(deg) {
-        return deg * (180 / Math.PI);
-    }
-
-    // Получает координаты стороны side: top | bottom | left | right
-    function getSideCoord(coods, side) {
-
-        var x = 0, y = 0;
-
-        switch(side) {
-
+    /**
+     * Получает координаты стороны
+     *
+     * @param {Object} coordinates
+     * @param {String} side Сторона top | bottom | left | right
+     * @return {Object}
+     */
+    function getSideCoordinate(coordinates, side) {
+        let x, y;
+        switch (side) {
             case 'top':
-                x = coods.left + (coods.width / 2);
-                y = coods.top;
+                x = coordinates.left + (coordinates.width / 2);
+                y = coordinates.top;
                 break;
             case 'right':
-                x = coods.left + coods.width;
-                y = coods.top + (coods.height / 2);
+                x = coordinates.left + coordinates.width;
+                y = coordinates.top + (coordinates.height / 2);
                 break;
             case 'bottom':
-                x = coods.left + (coods.width / 2);
-                y = coods.top + coods.height;
+                x = coordinates.left + (coordinates.width / 2);
+                y = coordinates.top + coordinates.height;
                 break;
             case 'left':
-                x = coods.left;
-                y = coods.top + (coods.height / 2);
+                x = coordinates.left;
+                y = coordinates.top + (coordinates.height / 2);
                 break;
             default:    // def: bottom
-                x = coods.left + (coods.width / 2);
-                y = coods.top + coods.height;
+                x = coordinates.left + (coordinates.width / 2);
+                y = coordinates.top + coordinates.height;
                 break;
         }
 
-        return { x: x, y: y }
+        return {x: x, y: y}
     }
 
-    // Получить центр
-    function getCenterCoord(coods) {
-
+    /**
+     * Получить центр
+     *
+     * @param {Object} coordinates
+     * @return {Object}
+     */
+    function getCenterCoordinate(coordinates) {
         return {
-            x: coods.left + coods.width / 2,
-            y: coods.top + (coods.height / 2)
+            x: coordinates.left + coordinates.width / 2,
+            y: coordinates.top + (coordinates.height / 2)
         }
     }
 
-    // Получает координаты треугольника
-    function getAngleCoord(r, c, angle) {
+    /**
+     * Получает координаты треугольника
+     *
+     * @param r
+     * @param c
+     * @param angle
+     * @return {{x, y}}
+     */
+    function getAngleCoordinate(r, c, angle) {
+        const rAngle = Math.acos(
+            Math.sqrt(Math.pow(r.left + r.width - c.x, 2)) /
+            Math.sqrt(Math.pow(r.left + r.width - c.x, 2) + Math.pow(r.top - c.y, 2))
+        );
 
-        var x, y,
-            rAngle = Math.acos(
-                Math.sqrt(Math.pow(r.left + r.width - c.x, 2)) /
-                Math.sqrt(Math.pow(r.left + r.width - c.x, 2) + Math.pow(r.top - c.y, 2))
-                );
-
+        let x, y;
         if (angle >= 2 * Math.PI - rAngle || angle < rAngle) {
-
             x = r.left + r.width;
             y = c.y + Math.tan(angle) * (r.left + r.width - c.x);
-        } 
-        
-        else {
-
-            if (angle >= rAngle && angle < Math.PI- rAngle) {
+        } else {
+            if (angle >= rAngle && angle < Math.PI - rAngle) {
                 x = c.x - ((r.top - c.y) / Math.tan(angle));
                 y = r.top + r.height;
-            } 
-            
-            else {
-
+            } else {
                 if (angle >= Math.PI - rAngle && angle < Math.PI + rAngle) {
                     x = r.left;
                     y = c.y - Math.tan(angle) * (r.left + r.width - c.x);
-                }
-
-                else {
-
+                } else {
                     if (angle >= Math.PI + rAngle) {
-
                         x = c.x + ((r.top - c.y) / Math.tan(angle));
                         y = r.top;
                     }
                 }
-            }       
+            }
         }
 
         return {
@@ -222,9 +242,15 @@
         };
     }
 
-    // Получает координаты круга
-    function getEllipseCoord(r, c, angle) {
-
+    /**
+     * Получает координаты круга
+     *
+     * @param r
+     * @param c
+     * @param angle
+     * @return {{x: *, y: *}}
+     */
+    function getEllipseCoordinate(r, c, angle) {
         return {
             x: c.x + (r.width / 2) * Math.cos(angle),
             y: c.y + (r.height / 2) * Math.sin(angle)
@@ -233,38 +259,29 @@
 
     /**
      * Кончик стрелы
-     * 
-     * @param {object} context - Контекст конваса
-     * 
-     * @param {object} p1 - Координаты стартовой точки
-     * 
-     * @param {object} p2 - Координаты конечной точки
-     * 
-     * @param {object} otp - Настройки
-     * 
-     * @param {bool} revers - Претаскивает кончик стрелы на друго конец, по умолчанию false
+     *
+     * @param {Object} context Контекст конваса
+     * @param {Object} p1 Координаты стартовой точки
+     * @param {Object} p2 Координаты конечной точки
+     * @param {Object} otp Настройки
+     * @param {Boolean} revers Претаскивает кончик стрелы на друго конец, по умолчанию false
      */
-    function arrowDrow(context, p1, p2, otp, revers = false) {
-
-        var headlen = otp.arrowSize;
-        var angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    function arrowDraw(context, p1, p2, otp, revers = false) {
+        const arrowSize = otp.arrowSize;
+        let angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
         context.beginPath();
 
-        if(!revers) {
-
+        if (!revers) {
             // Конец пути (кончик стрелки)
-            context.moveTo(p2.x - headlen * Math.cos(angle - Math.PI / 6), p2.y - headlen * Math.sin(angle - Math.PI / 6));
+            context.moveTo(p2.x - arrowSize * Math.cos(angle - Math.PI / 6), p2.y - arrowSize * Math.sin(angle - Math.PI / 6));
             context.lineTo(p2.x, p2.y);
-            context.lineTo(p2.x - headlen * Math.cos(angle + Math.PI / 6), p2.y - headlen * Math.sin(angle + Math.PI / 6));
-        }
-        
-        else {
-
+            context.lineTo(p2.x - arrowSize * Math.cos(angle + Math.PI / 6), p2.y - arrowSize * Math.sin(angle + Math.PI / 6));
+        } else {
             // Начало пути (кончик стрелки)
-            context.moveTo(p1.x + headlen * Math.cos(angle - Math.PI / 6), p1.y + headlen * Math.sin(angle - Math.PI / 6));
+            context.moveTo(p1.x + arrowSize * Math.cos(angle - Math.PI / 6), p1.y + arrowSize * Math.sin(angle - Math.PI / 6));
             context.lineTo(p1.x, p1.y);
-            context.lineTo(p1.x + headlen * Math.cos(angle + Math.PI / 6), p1.y + headlen * Math.sin(angle + Math.PI / 6));
+            context.lineTo(p1.x + arrowSize * Math.cos(angle + Math.PI / 6), p1.y + arrowSize * Math.sin(angle + Math.PI / 6));
         }
 
         context.stroke();
@@ -272,35 +289,25 @@
 
     /**
      * Рисует линию
-     * 
-     * https://jsfiddle.net/eqmwLj5z/1/
-     * 
-     * @param {object} context - Контекст конваса
-     * 
-     * @param {object} p1 - Координаты стартовой точки
-     * 
-     * @param {object} p2 - Координаты конечной точки
-     * 
-     * @param {bool} curve - Делает изгиб, по умолчанию false
+     *
+     * @link https://jsfiddle.net/eqmwLj5z/1/
+     *
+     * @param {Object} context Контекст конваса
+     * @param {Object} p1 Координаты стартовой точки
+     * @param {Object} p2 Координаты конечной точки
+     * @param {Boolean} curve Делает изгиб, по умолчанию false
      */
-    function lineDrow(context, p1, p2, curve = false) {
-
+    function lineDraw(context, p1, p2, curve = false) {
         context.beginPath();
 
-        var startPoint = { x: p1.x, y: p1.y }
+        const startPoint = {x: p1.x, y: p1.y}
+        const lastPoint = {x: p2.x, y: p2.y}
+        const centerPoint = {x: lastPoint.x, y: startPoint.y}
 
-        var lastPoint = { x: p2.x, y: p2.y }
-
-        var centerPoint = { x: lastPoint.x, y: startPoint.y }
-
-        if(!curve) {
-
+        if (!curve) {
             context.moveTo(startPoint.x, startPoint.y);
             context.lineTo(lastPoint.x, lastPoint.y);
-        }
-
-        else {
-
+        } else {
             // Первая часть
             context.moveTo(startPoint.x, startPoint.y);
             context.lineTo(centerPoint.x, centerPoint.y);
@@ -315,27 +322,21 @@
 
     /**
      * Здесь вызываются модули
-     * 
-     * @param {object} context - Контекст конваса
-     * 
-     * @param {object} p1 - Координаты стартовой точки
-     * 
-     * @param {object} p2 - Координаты конечной точки
-     * 
-     * @param {object} otp - Настройки
-     * 
-     * @param {stirng} otp.arrowLineType - Найстройки линии
-     * 
-     * @param {stirng} otp.arrowType - Найстройки кончика линии
+     *
+     * @param {Object} context Контекст конваса
+     * @param {Object} p1 Координаты стартовой точки
+     * @param {Object} p2 Координаты конечной точки
+     * @param {Object} otp Настройки
+     * @param {String} otp.arrowLineType Найстройки линии
+     * @param {String} otp.arrowType Найстройки кончика линии
      */
     function canvasDraw(context, p1, p2, otp) {
-
-        switch(otp.arrowLineType) {
+        switch (otp.arrowLineType) {
             case 'line':
-                lineDrow(context, p1, p2);
+                lineDraw(context, p1, p2);
                 break;
             case 'curved-line':
-                lineDrow(context, p1, p2, true);
+                lineDraw(context, p1, p2, true);
                 break;
         }
 
@@ -343,156 +344,182 @@
             case 'no-arrow':
                 break;
             case 'arrow':
-                arrowDrow(context, p1, p2, otp);
+                arrowDraw(context, p1, p2, otp);
                 break;
             case 'double-headed':
-                arrowDrow(context, p1, p2, otp);
-                arrowDrow(context, p1, p2, otp, true);
+                arrowDraw(context, p1, p2, otp);
+                arrowDraw(context, p1, p2, otp, true);
                 break;
             default:
                 break;
         }
     }
 
-    // Функция создает на канвасе стрелку. Параметры: color, lineWidth, shadowColor, shadowBlur , div1side, div2side
+    /**
+     * Создает на канвасе стрелку
+     *
+     * @param canvas
+     * @param div1
+     * @param div2
+     * @param gRenderOptions
+     * @param customOptions
+     */
     function drawArrow(canvas, div1, div2, gRenderOptions, customOptions) {
+        let context = canvas.getContext('2d'),
+            /**
+             * @type {ArrowOptions} Настройки стрелки
+             */
+            arrowOptions = {},
 
-        var context = canvas.getContext('2d'),
-            arrowOpt = {},
-
-            // Координата from
+            /* Координата from */
             dot1 = getOffset(canvas, div1),
 
-            // Координата to
+            /* Координата to */
             dot2 = getOffset(canvas, div2);
 
         // extend here with custom
-        extend(arrowOpt, gRenderOptions.arrow);
+        extend(arrowOptions, gRenderOptions.arrow);
         extend(context, gRenderOptions.render);
 
-        // Добавляем дополнительные настройки для стрелки, если они указаны
-        if(customOptions !== undefined) {
+        /* Добавляем дополнительные настройки для стрелки, если они указаны */
+        if (typeof customOptions !== "undefined") {
+            if (typeof customOptions.render !== "undefined") {
+                extend(context, customOptions.render);
+            }
 
-            if (customOptions.render !== undefined) extend(context, customOptions.render);
-
-            if (customOptions.arrow !== undefined) extend(arrowOpt, customOptions.arrow);
+            if (typeof customOptions.arrow !== "undefined") {
+                extend(arrowOptions, customOptions.arrow);
+            }
         }
 
-        // Настрйка подключения стрелки от и до (как подключить стрелку сбоку, снизу и тд)
-        switch(arrowOpt.connectionType) {
+        const c1 = getCenterCoordinate(dot1),
+            c2 = getCenterCoordinate(dot2);
+
+        /* Настрйка подключения стрелки от и до (как подключить стрелку сбоку, снизу и тд) */
+        switch (arrowOptions.connectionType) {
             case 'rectangleAuto':
-
-                var c1 = getCenterCoord(dot1),
-                    c2 = getCenterCoord(dot2);
-
-                dot1 = getAngleCoord(dot1, c1, Math.atan2(c1.y - c2.y, c1.x - c2.x) + Math.PI);
-                dot2 = getAngleCoord(dot2, c2, Math.atan2(c2.y - c1.y, c2.x - c1.x) + Math.PI);
+                dot1 = getAngleCoordinate(dot1, c1, Math.atan2(c1.y - c2.y, c1.x - c2.x) + Math.PI);
+                dot2 = getAngleCoordinate(dot2, c2, Math.atan2(c2.y - c1.y, c2.x - c1.x) + Math.PI);
 
                 break;
             case 'center':
-
-                dot1 = getCenterCoord(dot1);
-                dot2 = getCenterCoord(dot2);
+                dot1 = getCenterCoordinate(dot1);
+                dot2 = getCenterCoordinate(dot2);
 
                 break;
             case 'ellipseAuto':
-
-                var c1 = getCenterCoord(dot1),
-                    c2 = getCenterCoord(dot2);
-
-                dot1 = getEllipseCoord(dot1, c1, Math.atan2(c2.y - c1.y, c2.x - c1.x));
-                dot2 = getEllipseCoord(dot2, c2, Math.atan2(c1.y - c2.y, c1.x - c2.x));
+                dot1 = getEllipseCoordinate(dot1, c1, Math.atan2(c2.y - c1.y, c2.x - c1.x));
+                dot2 = getEllipseCoordinate(dot2, c2, Math.atan2(c1.y - c2.y, c1.x - c2.x));
 
                 break;
             case 'side':
-
-                dot1 = getSideCoord(dot1, arrowOpt.sideFrom);
-                dot2 = getSideCoord(dot2, arrowOpt.sideTo);
+                dot1 = getSideCoordinate(dot1, arrowOptions.sideFrom);
+                dot2 = getSideCoordinate(dot2, arrowOptions.sideTo);
 
                 break;
             case 'rectangleAngle':
-
-                dot1 = getAngleCoord(dot1, getCenterCoord(dot1), DegToRad(arrowOpt.angleFrom));
-                dot2 = getAngleCoord(dot2, getCenterCoord(dot2), DegToRad(arrowOpt.angleTo));
+                dot1 = getAngleCoordinate(dot1, getCenterCoordinate(dot1), DegToRad(arrowOptions.angleFrom));
+                dot2 = getAngleCoordinate(dot2, getCenterCoordinate(dot2), DegToRad(arrowOptions.angleTo));
 
                 break;
             case 'ellipseAngle':
-
-                dot1 = getEllipseCoord(dot1, getCenterCoord(dot1), DegToRad(arrowOpt.angleFrom));
-                dot2 = getEllipseCoord(dot2, getCenterCoord(dot2), DegToRad(arrowOpt.angleTo));
+                dot1 = getEllipseCoordinate(dot1, getCenterCoordinate(dot1), DegToRad(arrowOptions.angleFrom));
+                dot2 = getEllipseCoordinate(dot2, getCenterCoordinate(dot2), DegToRad(arrowOptions.angleTo));
 
                 break;
-            default: break;
+            default:
+                break;
         }
 
         // Подключение смещения
-        if(arrowOpt.startOffsetX != null) dot1.x += arrowOpt.startOffsetX;
+        if (arrowOptions.startOffsetX != null) {
+            dot1.x += arrowOptions.startOffsetX;
+        }
 
-        if(arrowOpt.startOffsetY != null) dot1.y += arrowOpt.startOffsetY;
+        if (arrowOptions.startOffsetY != null) {
+            dot1.y += arrowOptions.startOffsetY;
+        }
 
-        if(arrowOpt.lastOffsetX != null) dot2.x += arrowOpt.lastOffsetX;
+        if (arrowOptions.lastOffsetX != null) {
+            dot2.x += arrowOptions.lastOffsetX;
+        }
 
-        if(arrowOpt.lastOffsetY != null) dot2.y += arrowOpt.lastOffsetY;
+        if (arrowOptions.lastOffsetY != null) {
+            dot2.y += arrowOptions.lastOffsetY;
+        }
 
-        canvasDraw(context, dot1, dot2, arrowOpt);
+        canvasDraw(context, dot1, dot2, arrowOptions);
     }
 
-    // Заполняем класс функциями
+    /**
+     * Класс Arrows
+     */
     $cArrows.fn = $cArrows.prototype = {
+        /**
+         * Вызвать исключение
+         *
+         * @param {String|Object} exception
+         */
+        trowUserException: function (exception) {
+            if (this.defaultOptions.base.alertErrors === true) {
+                alert("CanvasArrows error: " + exception);
+            }
 
-        trowException: function(ex) {
-
-            if (this.options.base.alertErrors === true) alert('CanvasArrows error: ' + ex);
-
-            throw new Error(ex);
+            throw new Error(exception);
         },
 
-        // Нарисовать стрелку from - от кого, to - куда, customOptions - дополнительные параметры
-        arrow: function(from, to, customOptions) {
+        /**
+         * Нарисовать стрелку from - от кого, to - куда, options - дополнительные параметры
+         *
+         * @param {String} from Идентификатор от
+         * @param {String} to Идентификатор к
+         * @param {Object} options Настройки
+         * @return {$cArrows}
+         */
+        arrow: function (from, to, options) {
+            /* Проходимся по циклу элементов конваса */
+            for (const iParent in this.CanvasStorage[0]) {
+                const fromChildren = this.CanvasStorage[0][iParent].querySelectorAll(from);
+                const toChildren = this.CanvasStorage[0][iParent].querySelectorAll(to);
 
-            // Проходимся по циклу элементов конваса
-            for(iParent in this.CanvasStorage[0]) {
-
-                // От кого
-                var fromChildrens = this.CanvasStorage[0][iParent].querySelectorAll(from);
-
-                // Куда
-                var toChildrens = this.CanvasStorage[0][iParent].querySelectorAll(to);
-
-                for(var fi = 0; fi < fromChildrens.length; fi++) {
-
-                    for(var ti = 0; ti < toChildrens.length; ti++) {
-
-                        // 1 - Канвас, 2 - От кого, 3 - куда, 4 - дефолтные настройки, 5 - мои настройки
-                        drawArrow(this.CanvasStorage[1][iParent], fromChildrens[fi], toChildrens[ti], this.options, customOptions);
+                for (let fi = 0; fi < fromChildren.length; fi++) {
+                    for (let ti = 0; ti < toChildren.length; ti++) {
+                        /* 1 - Канвас, 2 - От кого, 3 - куда, 4 - дефолтные настройки, 5 - мои настройки */
+                        drawArrow(this.CanvasStorage[1][iParent], fromChildren[fi], toChildren[ti], this.defaultOptions, options);
                     }
 
-                    if(this.options.base.putToContainer === true) this.CanvasStorage[2].push([from, to, customOptions]);
+                    if (this.defaultOptions.base.putToContainer === true) {
+                        this.CanvasStorage[2].push([from, to, options]);
+                    }
                 }
             }
 
             return this;
         },
 
-        // Рисует массив стрелок, как использовать пока не ясно
+        /**
+         * Рисует массив стрелок, как использовать пока не ясно
+         *
+         * @param arrowsArr
+         * @return {$cArrows}
+         */
         arrows: function (arrowsArr) {
-
-            for (var i = 0; i < arrowsArr.length; i++) {
-
+            for (let i = 0; i < arrowsArr.length; i++) {
                 this.arrow(arrowsArr[i][0], arrowsArr[i][1], arrowsArr[i][2]);
             }
 
             return this;
         },
 
-        // Очищает холст
+        /**
+         * Очищает холст
+         *
+         * @return {$cArrows}
+         */
         clear: function () {
-
-            for (iCanvas in this.CanvasStorage[1]) {
-
-                var canvas = this.CanvasStorage[1][iCanvas];
-
-                var context = canvas.getContext('2d');
+            for (const iCanvas in this.CanvasStorage[1]) {
+                const canvas = this.CanvasStorage[1][iCanvas];
+                const context = canvas.getContext('2d');
 
                 context.clearRect(0, 0, canvas.width, canvas.height);
             }
@@ -500,40 +527,73 @@
             return this;
         },
 
-        // Рисует ранее созданные стрелки через функцию arrow()
+        /**
+         * Рисует ранее созданные стрелки через функцию arrow()
+         *
+         * @return {$cArrows}
+         */
         draw: function () {
+            const putToContainer = this.defaultOptions.base.putToContainer;
+            this.defaultOptions.base.putToContainer = false;
 
-            var putToContainer = this.options.base.putToContainer;
-            this.options.base.putToContainer = false;
-
-            for (iArrow in this.CanvasStorage[2]) {
-
+            for (let iArrow in this.CanvasStorage[2]) {
                 this.arrow(this.CanvasStorage[2][iArrow][0], this.CanvasStorage[2][iArrow][1], this.CanvasStorage[2][iArrow][2]);
             }
 
-            this.options.base.putToContainer = putToContainer;
-            
+            this.defaultOptions.base.putToContainer = putToContainer;
+
             return this;
         },
 
-        // Перерисовывает стрелки на холсте, эквивалент clear() draw()
+        /**
+         * Перерисовывает стрелки на холсте, эквивалент clear() draw()
+         *
+         * @return {$cArrows}
+         */
         redraw: function () {
-
             return this.clear().draw();
         },
 
-        // Сменить опции стрелки
-        updateOptions: function (options) {
+        /**
+         * Сменить опции стрелки
+         *
+         * @param defaultOptions
+         * @return {$cArrows}
+         */
+        updateOptions: function (defaultOptions) {
+            if (typeof defaultOptions.base !== "undefined") {
+                extend(this.defaultOptions.base, defaultOptions.base);
+            }
 
-            if (options.base !== undefined) extend(this.options.base, options.base);
+            if (typeof defaultOptions.render !== "undefined") {
+                extend(this.defaultOptions.render, defaultOptions.render);
+            }
 
-            if (options.render !== undefined) extend(this.options.render, options.render);
-
-            if (options.arrow !== undefined) extend(this.options.arrow, options.arrow);
+            if (typeof defaultOptions.arrow !== "undefined") {
+                extend(this.defaultOptions.arrow, defaultOptions.arrow);
+            }
 
             return this;
         }
-	};
+    };
 
-	window.$cArrows = $cArrows;
+    window.$cArrows = $cArrows;
 })(window);
+
+/**
+ * ArrowOptions
+ *
+ * @typedef {Object} ArrowOptions
+ * @property {String} connectionType Тип подключения: rectangleAuto | center | ellipseAuto | side | rectangleAngle | ellipseAngle
+ * @property {String} arrowType Определяет тип стрелки: arrow | line | double-headed
+ * @property {Number} arrowSize Размер стрелки
+ * @property {String} arrowLineType Тип линии: line | flex_line
+ * @property {String} sideFrom
+ * @property {String} sideTo
+ * @property {Number} angleFrom
+ * @property {Number} angleTo
+ * @property {Number} startOffsetX
+ * @property {Number} startOffsetY
+ * @property {Number} lastOffsetX
+ * @property {Number} lastOffsetY
+ */
